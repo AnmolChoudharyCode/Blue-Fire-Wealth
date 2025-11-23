@@ -1,0 +1,1301 @@
+'use client';
+
+import { useState } from 'react';
+import { useDarkMode } from '../components/common/DarkModeProvider';
+
+interface Goal {
+  id: string;
+  name: string;
+  targetYear: string;
+  targetAmount: string;
+  currentValue: string;
+  yearsAway: string;
+  category: string;
+  icon: string;
+}
+
+export default function WealthPathPage() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const { isDarkMode } = useDarkMode();
+
+  // Financial Profile State
+  const [financialProfile, setFinancialProfile] = useState({
+    currentAge: '30',
+    monthlySIP: '10000',
+    expectedReturn: '12',
+    currentAUM: '500000',
+    annualSIPIncrease: '10',
+    inflationRate: '6',
+  });
+
+  // Life Goals State
+  const [goals, setGoals] = useState<Goal[]>([
+    {
+      id: '1',
+      name: 'Retirement Fund',
+      targetYear: '2050',
+      targetAmount: '₹5.00Cr',
+      currentValue: '₹1.00L',
+      yearsAway: '25 years',
+      category: 'Retirement',
+      icon: 'target',
+    },
+    {
+      id: '2',
+      name: "Child's Education",
+      targetYear: '2035',
+      targetAmount: '₹50.00L',
+      currentValue: '₹0',
+      yearsAway: '10 years',
+      category: 'Education',
+      icon: 'education',
+    },
+  ]);
+
+  const [isAddingGoal, setIsAddingGoal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [goalFormData, setGoalFormData] = useState({
+    name: '',
+    category: 'Retirement',
+    targetYear: '',
+    targetAmount: '',
+    currentValue: '0',
+  });
+
+  const handleProfileChange = (field: string, value: string) => {
+    setFinancialProfile((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveProfile = () => {
+    // Handle save profile logic
+    console.log('Saving profile:', financialProfile);
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    setGoals(goals.filter((goal) => goal.id !== id));
+  };
+
+  const handleEditGoal = (goal: Goal) => {
+    // Extract numeric values from formatted strings
+    let targetAmount = 0;
+    let currentValue = 0;
+
+    // Parse target amount
+    if (goal.targetAmount.includes('Cr')) {
+      const num = parseFloat(goal.targetAmount.replace(/[₹,Cr]/g, ''));
+      targetAmount = num * 10000000;
+    } else if (goal.targetAmount.includes('L')) {
+      const num = parseFloat(goal.targetAmount.replace(/[₹,L]/g, ''));
+      targetAmount = num * 100000;
+    } else {
+      targetAmount = parseFloat(goal.targetAmount.replace(/[₹,]/g, '')) || 0;
+    }
+
+    // Parse current value
+    if (goal.currentValue.includes('Cr')) {
+      const num = parseFloat(goal.currentValue.replace(/[₹,Cr]/g, ''));
+      currentValue = num * 10000000;
+    } else if (goal.currentValue.includes('L')) {
+      const num = parseFloat(goal.currentValue.replace(/[₹,L]/g, ''));
+      currentValue = num * 100000;
+    } else {
+      currentValue = parseFloat(goal.currentValue.replace(/[₹,]/g, '')) || 0;
+    }
+
+    setGoalFormData({
+      name: goal.name,
+      category: goal.category,
+      targetYear: goal.targetYear,
+      targetAmount: targetAmount.toString(),
+      currentValue: currentValue.toString(),
+    });
+    setEditingGoal(goal);
+  };
+
+  const handleGoalFormChange = (field: string, value: string) => {
+    setGoalFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const formatAmount = (amount: number): string => {
+    if (amount >= 10000000) {
+      return `₹${(amount / 10000000).toFixed(2)}Cr`;
+    } else if (amount >= 100000) {
+      return `₹${(amount / 100000).toFixed(2)}L`;
+    } else {
+      return `₹${amount.toLocaleString('en-IN')}`;
+    }
+  };
+
+  const calculateYearsAway = (targetYear: string): string => {
+    const currentYear = new Date().getFullYear();
+    const years = parseInt(targetYear) - currentYear;
+    return `${years} years`;
+  };
+
+  const handleSaveGoal = () => {
+    if (!goalFormData.name || !goalFormData.targetYear || !goalFormData.targetAmount) {
+      return;
+    }
+
+    const targetAmountNum = parseFloat(goalFormData.targetAmount);
+    const currentValueNum = parseFloat(goalFormData.currentValue) || 0;
+
+    const newGoal: Goal = {
+      id: editingGoal ? editingGoal.id : Date.now().toString(),
+      name: goalFormData.name,
+      targetYear: goalFormData.targetYear,
+      targetAmount: formatAmount(targetAmountNum),
+      currentValue: currentValueNum > 0 ? formatAmount(currentValueNum) : '₹0',
+      yearsAway: calculateYearsAway(goalFormData.targetYear),
+      category: goalFormData.category,
+      icon: goalFormData.category === 'Retirement' ? 'target' : 'education',
+    };
+
+    if (editingGoal) {
+      setGoals(goals.map((g) => (g.id === editingGoal.id ? newGoal : g)));
+    } else {
+      setGoals([...goals, newGoal]);
+    }
+
+    handleCloseGoalModal();
+  };
+
+  const handleCloseGoalModal = () => {
+    setEditingGoal(null);
+    setIsAddingGoal(false);
+    setGoalFormData({
+      name: '',
+      category: 'Retirement',
+      targetYear: '',
+      targetAmount: '',
+      currentValue: '0',
+    });
+  };
+
+  const openAddGoalModal = () => {
+    setGoalFormData({
+      name: '',
+      category: 'Retirement',
+      targetYear: '',
+      targetAmount: '',
+      currentValue: '0',
+    });
+    setIsAddingGoal(true);
+  };
+
+  return (
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* Goal Modal */}
+      {(isAddingGoal || editingGoal) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h2 className="text-2xl font-bold">{editingGoal ? 'Edit Goal' : 'Add New Goal'}</h2>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {editingGoal ? 'Update your financial target and timeline' : 'Set your financial target and timeline'}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseGoalModal}
+                className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors cursor-pointer`}
+                aria-label="Close modal"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <form onSubmit={(e) => { e.preventDefault(); handleSaveGoal(); }} className="space-y-6">
+                {/* Goal Name */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Goal Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={goalFormData.name}
+                    onChange={(e) => handleGoalFormChange('name', e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                    placeholder="Child's Education"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={goalFormData.category}
+                    onChange={(e) => handleGoalFormChange('category', e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                  >
+                    <option value="Retirement">Retirement</option>
+                    <option value="Education">Education</option>
+                    <option value="House">House</option>
+                    <option value="Vacation">Vacation</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Target Year and Target Amount */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Target Year <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={new Date().getFullYear()}
+                      value={goalFormData.targetYear}
+                      onChange={(e) => handleGoalFormChange('targetYear', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="2035"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Target Amount (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={goalFormData.targetAmount}
+                      onChange={(e) => handleGoalFormChange('targetAmount', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="5000000"
+                    />
+                  </div>
+                </div>
+
+                {/* Current Value */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Current Value (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={goalFormData.currentValue}
+                    onChange={(e) => handleGoalFormChange('currentValue', e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                    placeholder="0"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCloseGoalModal}
+                    className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      isDarkMode
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors cursor-pointer"
+                  >
+                    {editingGoal ? 'Update Goal' : 'Add Goal'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Tabs */}
+      <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} border-b border-gray-200`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            {['dashboard', 'input', 'analysis'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
+                  activeTab === tab
+                    ? 'border-blue-600 text-blue-600'
+                    : `${isDarkMode ? 'border-transparent text-gray-400 hover:text-gray-300' : 'border-transparent text-gray-500 hover:text-gray-700'}`
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Dashboard Tab Content */}
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Key Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Current AUM */}
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Current AUM</span>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-2xl font-bold">₹5.00L</p>
+          </div>
+
+          {/* Projected Wealth */}
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Projected Wealth</span>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-green-600"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-red-600">₹-620045618</p>
+          </div>
+
+          {/* Monthly SIP */}
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Monthly SIP</span>
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-yellow-600"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-2xl font-bold">₹10.00K</p>
+          </div>
+
+          {/* Total Goals */}
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Goals</span>
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-orange-600"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-2xl font-bold">₹5.50Cr</p>
+          </div>
+        </div>
+
+        {/* Charts and Goal Timeline */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Wealth Accumulation Projection */}
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+            <h2 className="text-lg font-bold mb-1">Wealth Accumulation Projection</h2>
+            <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Your investment growth vs. goal requirements over time
+            </p>
+            <div className="h-64 flex items-center justify-center border border-gray-200 rounded">
+              <div className="text-center">
+                <svg
+                  className="w-48 h-48 text-gray-300"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Chart placeholder</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Goal Timeline */}
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+            <h2 className="text-lg font-bold mb-1">Goal Timeline</h2>
+            <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Milestones on your financial journey
+            </p>
+            <div className="space-y-4">
+              {/* Child's Education Goal */}
+              <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-red-500`}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <svg
+                      className="w-5 h-5 text-red-500"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h3 className="font-semibold">Child's Education</h3>
+                  </div>
+                  <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded">At Risk</span>
+                </div>
+                <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  2035 • 10 years away
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Target (Adjusted)</p>
+                    <p className="font-semibold">₹89.54L</p>
+                  </div>
+                  <div>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Projected Value</p>
+                    <p className="font-semibold">₹51.25L</p>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Shortfall</p>
+                  <p className="text-lg font-bold text-red-600">-₹38.29L</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Year-by-Year Projections Table */}
+        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-bold mb-1">Year-by-Year Projections</h2>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Detailed breakdown of your wealth accumulation.
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-blue-600"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} border-b border-gray-200`}>
+                  <th className="px-4 py-3 text-left font-semibold">Year</th>
+                  <th className="px-4 py-3 text-left font-semibold">Age</th>
+                  <th className="px-4 py-3 text-left font-semibold">Investment Value</th>
+                  <th className="px-4 py-3 text-left font-semibold">Monthly SIP</th>
+                  <th className="px-4 py-3 text-left font-semibold">Annual SIP</th>
+                  <th className="px-4 py-3 text-left font-semibold">Goals Required</th>
+                  <th className="px-4 py-3 text-left font-semibold">Surplus/(Deficit)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { year: 2025, age: 30, investment: '₹5.00L', monthlySIP: '₹10.00K', annualSIP: '₹1.20L' },
+                  { year: 2026, age: 31, investment: '₹7.00L', monthlySIP: '₹11.00K', annualSIP: '₹1.32L' },
+                  { year: 2027, age: 32, investment: '₹9.50L', monthlySIP: '₹12.00K', annualSIP: '₹1.44L' },
+                  { year: 2028, age: 33, investment: '₹12.50L', monthlySIP: '₹13.00K', annualSIP: '₹1.56L' },
+                  { year: 2029, age: 34, investment: '₹16.00L', monthlySIP: '₹14.00K', annualSIP: '₹1.68L' },
+                ].map((row) => (
+                  <tr
+                    key={row.year}
+                    className={`border-b border-gray-200 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+                  >
+                    <td className="px-4 py-3">{row.year}</td>
+                    <td className="px-4 py-3">{row.age}</td>
+                    <td className="px-4 py-3 font-semibold">{row.investment}</td>
+                    <td className="px-4 py-3">{row.monthlySIP}</td>
+                    <td className="px-4 py-3">{row.annualSIP}</td>
+                    <td className="px-4 py-3">-</td>
+                    <td className="px-4 py-3 text-red-600">-</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+          </>
+        )}
+
+        {/* Input Tab Content */}
+        {activeTab === 'input' && (
+          <div className="space-y-8">
+            {/* Financial Profile Card */}
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-blue-600"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Financial Profile</h2>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Enter your current financial information
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Current Age */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Current Age
+                    </label>
+                    <input
+                      type="number"
+                      value={financialProfile.currentAge}
+                      onChange={(e) => handleProfileChange('currentAge', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="30"
+                    />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Your current age in years
+                    </p>
+                  </div>
+
+                  {/* Monthly SIP */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Monthly SIP (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={financialProfile.monthlySIP}
+                      onChange={(e) => handleProfileChange('monthlySIP', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="10000"
+                    />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Current monthly investment amount
+                    </p>
+                  </div>
+
+                  {/* Expected Return */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Expected Return (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={financialProfile.expectedReturn}
+                      onChange={(e) => handleProfileChange('expectedReturn', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="12"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Current AUM */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Current AUM (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={financialProfile.currentAUM}
+                      onChange={(e) => handleProfileChange('currentAUM', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="500000"
+                    />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Total value of all investments
+                    </p>
+                  </div>
+
+                  {/* Annual SIP Increase */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Annual SIP Increase (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={financialProfile.annualSIPIncrease}
+                      onChange={(e) => handleProfileChange('annualSIPIncrease', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="10"
+                    />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Yearly increase in SIP amount
+                    </p>
+                  </div>
+
+                  {/* Inflation Rate */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Inflation Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={financialProfile.inflationRate}
+                      onChange={(e) => handleProfileChange('inflationRate', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="6"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Proceed Button */}
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleSaveProfile}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md cursor-pointer"
+                >
+                  Proceed
+                </button>
+              </div>
+            </div>
+
+            {/* Life Goals Section */}
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-orange-600"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Life Goals</h2>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Define your financial milestones
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={openAddGoalModal}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center space-x-2 cursor-pointer"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Add Goal</span>
+                </button>
+              </div>
+
+              {/* Goals Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {goals.map((goal) => (
+                  <div
+                    key={goal.id}
+                    className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-6 border border-gray-200`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        {goal.icon === 'target' ? (
+                          <svg
+                            className="w-5 h-5 text-orange-600"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-5 h-5 text-blue-600"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                            <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                          </svg>
+                        )}
+                        <div>
+                          <h3 className="font-semibold">{goal.name}</h3>
+                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Target: {goal.targetYear}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditGoal(goal)}
+                          className="p-1 hover:bg-gray-600 rounded cursor-pointer"
+                        >
+                          <svg
+                            className="w-4 h-4 text-gray-500"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteGoal(goal.id)}
+                          className="p-1 hover:bg-gray-600 rounded cursor-pointer"
+                        >
+                          <svg
+                            className="w-4 h-4 text-red-500"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between">
+                        <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Target Amount
+                        </span>
+                        <span className="font-semibold">{goal.targetAmount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Current Value
+                        </span>
+                        <span className="font-semibold">{goal.currentValue}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 text-gray-300'
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {goal.yearsAway}
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          goal.category === 'Retirement'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {goal.category}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analysis Tab Content */}
+        {activeTab === 'analysis' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Panel: Goal Feasibility Analysis */}
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-purple-600"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Goal Feasibility Analysis</h2>
+                    <p className={`text-sm flex items-center space-x-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>0 of 2 goals are on track</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Overall Progress */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Overall Progress
+                  </span>
+                  <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>0%</span>
+                </div>
+                <div className={`w-full h-3 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                  <div className="bg-blue-600 h-3 rounded-full" style={{ width: '0%' }}></div>
+                </div>
+              </div>
+
+              {/* Goal Cards */}
+              <div className="space-y-4">
+                {/* Retirement Fund Goal */}
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-red-500`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold mb-1">Retirement Fund</h3>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Target: 2050 • 25 years away
+                      </p>
+                    </div>
+                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded flex items-center space-x-1">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                      <span>Shortfall</span>
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Adjusted Target</span>
+                      <span className="font-semibold">₹21.46Cr</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Projected Value</span>
+                      <span className="font-semibold">₹24.94L</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Shortfall</span>
+                      <span className="font-semibold text-red-600">₹21.21Cr</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Funding Ratio
+                      </span>
+                      <span className="text-xs font-semibold">1%</span>
+                    </div>
+                    <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: '1%' }}></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Child's Education Goal */}
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-red-500`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold mb-1">Child's Education</h3>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Target: 2035 • 10 years away
+                      </p>
+                    </div>
+                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded flex items-center space-x-1">
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                      <span>Shortfall</span>
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Adjusted Target</span>
+                      <span className="font-semibold">₹89.54L</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Projected Value</span>
+                      <span className="font-semibold">₹51.25L</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Shortfall</span>
+                      <span className="font-semibold text-red-600">₹38.29L</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Funding Ratio
+                      </span>
+                      <span className="text-xs font-semibold">57%</span>
+                    </div>
+                    <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: '57%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Wealth Accumulation Projection */}
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-blue-600"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Wealth Accumulation Projection</h2>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Your investment growth vs. goal requirements over time
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chart Legend */}
+              <div className="flex items-center space-x-6 mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    → Investment Value
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    → Goals Requirement
+                  </span>
+                </div>
+              </div>
+
+              {/* Chart Container */}
+              <div className="h-80 flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                  <svg
+                    className="w-64 h-64 text-gray-300 dark:text-gray-600"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Chart visualization placeholder
+                  </p>
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                    Integration with charting library required
+                  </p>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            {/* Goal Timeline Section - Below Chart */}
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-blue-600"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Goal Timeline</h2>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Milestones on your financial journey
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Goals Timeline List */}
+              <div className="space-y-6">
+                {goals.map((goal, index) => {
+                  // Calculate shortfall (simplified - you'd calculate based on actual projections)
+                  const parseAmount = (amountStr: string): number => {
+                    if (amountStr.includes('Cr')) {
+                      return parseFloat(amountStr.replace(/[₹,Cr]/g, '')) * 10000000;
+                    } else if (amountStr.includes('L')) {
+                      return parseFloat(amountStr.replace(/[₹,L]/g, '')) * 100000;
+                    }
+                    return parseFloat(amountStr.replace(/[₹,]/g, '')) || 0;
+                  };
+
+                  const targetAmount = parseAmount(goal.targetAmount);
+                  const projectedValue = parseAmount(goal.currentValue);
+                  const shortfall = targetAmount - projectedValue;
+                  const isAtRisk = shortfall > 0;
+
+                  // Calculate years away
+                  const currentYear = new Date().getFullYear();
+                  const yearsAway = parseInt(goal.targetYear) - currentYear;
+
+                  return (
+                    <div key={goal.id} className="flex items-start space-x-4 relative">
+                      {/* Timeline Indicator */}
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            isAtRisk ? 'bg-red-100' : 'bg-green-100'
+                          }`}
+                        >
+                          <svg
+                            className={`w-5 h-5 ${isAtRisk ? 'text-red-600' : 'text-green-600'}`}
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                        </div>
+                        {index < goals.length - 1 && (
+                          <div
+                            className={`w-0.5 h-full min-h-24 ${
+                              isDarkMode ? 'bg-gray-700' : 'bg-gray-300'
+                            }`}
+                            style={{ marginTop: '0.5rem' }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Goal Content */}
+                      <div className="flex-1">
+                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4`}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold mb-1">{goal.name}</h3>
+                              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {goal.targetYear} • {yearsAway} years away
+                              </p>
+                            </div>
+                            {isAtRisk && (
+                              <span className="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded">
+                                At Risk
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Target (Adjusted)
+                              </p>
+                              <p className="font-semibold">{goal.targetAmount}</p>
+                            </div>
+                            <div>
+                              <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                Projected Value
+                              </p>
+                              <p className="font-semibold">{goal.currentValue}</p>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                            <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Shortfall
+                            </p>
+                            <p className="text-lg font-bold text-red-600">
+                              -{formatAmount(Math.abs(shortfall))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
