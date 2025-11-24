@@ -140,14 +140,62 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Pushing to GitHub..." -ForegroundColor Green
 Write-Host "Note: You may be prompted for your GitHub credentials" -ForegroundColor Yellow
-git push -u origin main
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`nERROR: Failed to push to GitHub." -ForegroundColor Red
-    Write-Host "This might be due to:" -ForegroundColor Yellow
-    Write-Host "  - Authentication issues (check your GitHub credentials)" -ForegroundColor Yellow
-    Write-Host "  - Repository permissions" -ForegroundColor Yellow
-    Write-Host "  - Network connectivity" -ForegroundColor Yellow
-    exit 1
+
+# Try to push and capture output
+$pushOutput = git push -u origin main 2>&1 | Out-String
+$pushExitCode = $LASTEXITCODE
+
+if ($pushExitCode -ne 0) {
+    # Check if it's a non-fast-forward error (remote has commits we don't have)
+    if ($pushOutput -match "non-fast-forward" -or $pushOutput -match "Updates were rejected") {
+        Write-Host "`nRemote repository has commits that your local repository doesn't have." -ForegroundColor Yellow
+        Write-Host "This usually happens when the repository was initialized on GitHub with a README." -ForegroundColor Yellow
+        Write-Host "`nPulling remote changes and merging..." -ForegroundColor Green
+        
+        # Fetch remote changes
+        git fetch origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: Failed to fetch from remote." -ForegroundColor Red
+            exit 1
+        }
+        
+        # Try to merge (allow unrelated histories if needed)
+        Write-Host "Merging remote changes..." -ForegroundColor Green
+        git pull origin main --allow-unrelated-histories --no-edit
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "WARNING: Merge had conflicts or failed. Attempting to continue..." -ForegroundColor Yellow
+            # If merge fails, try rebase
+            git pull --rebase origin main --allow-unrelated-histories
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "ERROR: Failed to merge remote changes." -ForegroundColor Red
+                Write-Host "You may need to resolve conflicts manually or force push." -ForegroundColor Yellow
+                Write-Host "`nTo force push (overwrites remote): git push -u origin main --force" -ForegroundColor Cyan
+                exit 1
+            }
+        }
+        
+        # Try pushing again after merge
+        Write-Host "Pushing merged changes..." -ForegroundColor Green
+        git push -u origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "`nERROR: Failed to push after merge." -ForegroundColor Red
+            Write-Host "This might be due to:" -ForegroundColor Yellow
+            Write-Host "  - Authentication issues (check your GitHub credentials)" -ForegroundColor Yellow
+            Write-Host "  - Repository permissions" -ForegroundColor Yellow
+            Write-Host "  - Merge conflicts that need to be resolved" -ForegroundColor Yellow
+            exit 1
+        }
+    } else {
+        # Other error (authentication, network, etc.)
+        Write-Host "`nERROR: Failed to push to GitHub." -ForegroundColor Red
+        Write-Host "This might be due to:" -ForegroundColor Yellow
+        Write-Host "  - Authentication issues (check your GitHub credentials)" -ForegroundColor Yellow
+        Write-Host "    GitHub requires a Personal Access Token instead of password." -ForegroundColor Yellow
+        Write-Host "    Create one at: https://github.com/settings/tokens" -ForegroundColor Cyan
+        Write-Host "  - Repository permissions" -ForegroundColor Yellow
+        Write-Host "  - Network connectivity" -ForegroundColor Yellow
+        exit 1
+    }
 }
 
 Write-Host "`nDone! Your code has been pushed to GitHub." -ForegroundColor Green
