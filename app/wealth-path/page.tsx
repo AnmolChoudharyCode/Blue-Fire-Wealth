@@ -20,6 +20,8 @@ export default function WealthPathPage() {
 
   // Financial Profile State
   const [financialProfile, setFinancialProfile] = useState({
+    name: '',
+    mobileNo: '',
     currentAge: '30',
     monthlySIP: '10000',
     expectedReturn: '12',
@@ -127,8 +129,10 @@ export default function WealthPathPage() {
       return `₹${(amount / 10000000).toFixed(2)}Cr`;
     } else if (amount >= 100000) {
       return `₹${(amount / 100000).toFixed(2)}L`;
+    } else if (amount >= 1000) {
+      return `₹${(amount / 1000).toFixed(2)}K`;
     } else {
-      return `₹${amount.toLocaleString('en-IN')}`;
+      return `₹${Math.round(amount).toLocaleString('en-IN')}`;
     }
   };
 
@@ -136,6 +140,215 @@ export default function WealthPathPage() {
     const currentYear = new Date().getFullYear();
     const years = parseInt(targetYear) - currentYear;
     return `${years} years`;
+  };
+
+  // Parse amount string to number
+  const parseAmount = (amountStr: string): number => {
+    if (amountStr.includes('Cr')) {
+      return parseFloat(amountStr.replace(/[₹,Cr]/g, '')) * 10000000;
+    } else if (amountStr.includes('L')) {
+      return parseFloat(amountStr.replace(/[₹,L]/g, '')) * 100000;
+    }
+    return parseFloat(amountStr.replace(/[₹,]/g, '')) || 0;
+  };
+
+  // Calculate adjusted target with inflation
+  const calculateAdjustedTarget = (targetAmount: number, targetYear: string, inflationRate: number): number => {
+    const currentYear = new Date().getFullYear();
+    const years = parseInt(targetYear) - currentYear;
+    if (years <= 0) return targetAmount;
+    return targetAmount * Math.pow(1 + inflationRate / 100, years);
+  };
+
+  // Calculate projected value based on financial profile
+  const calculateProjectedValue = (
+    currentAUM: number,
+    monthlySIP: number,
+    expectedReturn: number,
+    annualSIPIncrease: number,
+    targetYear: string,
+    currentAge: number
+  ): number => {
+    const currentYear = new Date().getFullYear();
+    const years = parseInt(targetYear) - currentYear;
+    if (years <= 0) return currentAUM;
+
+    let projectedValue = currentAUM;
+    const monthlyReturn = expectedReturn / 100 / 12;
+    const annualReturn = expectedReturn / 100;
+
+    // Calculate year by year
+    for (let year = 0; year < years; year++) {
+      // Apply annual return to existing value
+      projectedValue = projectedValue * (1 + annualReturn);
+      
+      // Add monthly SIPs for the year (with annual increase)
+      const currentYearSIP = monthlySIP * Math.pow(1 + annualSIPIncrease / 100, year);
+      
+      // Calculate SIP contributions with monthly compounding
+      // Each SIP grows from the month it's invested until the end of the year
+      let sipContribution = 0;
+      for (let month = 0; month < 12; month++) {
+        // SIP invested at the start of each month, grows for (12 - month) months
+        const monthsRemaining = 12 - month;
+        sipContribution += currentYearSIP * Math.pow(1 + monthlyReturn, monthsRemaining);
+      }
+      
+      projectedValue = projectedValue + sipContribution;
+    }
+
+    return projectedValue;
+  };
+
+  // Calculate goal feasibility metrics
+  const calculateGoalMetrics = (goal: Goal) => {
+    const targetAmount = parseAmount(goal.targetAmount);
+    const currentValue = parseAmount(goal.currentValue);
+    const inflationRate = parseFloat(financialProfile.inflationRate) || 6;
+    const currentAUM = parseFloat(financialProfile.currentAUM) || 0;
+    const monthlySIP = parseFloat(financialProfile.monthlySIP) || 0;
+    const expectedReturn = parseFloat(financialProfile.expectedReturn) || 12;
+    const annualSIPIncrease = parseFloat(financialProfile.annualSIPIncrease) || 10;
+    const currentAge = parseFloat(financialProfile.currentAge) || 30;
+
+    const adjustedTarget = calculateAdjustedTarget(targetAmount, goal.targetYear, inflationRate);
+    const projectedValue = calculateProjectedValue(
+      currentAUM,
+      monthlySIP,
+      expectedReturn,
+      annualSIPIncrease,
+      goal.targetYear,
+      currentAge
+    ) + currentValue; // Add current value to projected
+
+    const shortfall = adjustedTarget - projectedValue;
+    const fundingRatio = adjustedTarget > 0 ? Math.min(100, (projectedValue / adjustedTarget) * 100) : 0;
+    const isOnTrack = shortfall <= 0;
+
+    return {
+      adjustedTarget,
+      projectedValue,
+      shortfall,
+      fundingRatio,
+      isOnTrack,
+    };
+  };
+
+  // Calculate total projected wealth at the furthest goal year
+  const calculateTotalProjectedWealth = (): number => {
+    if (goals.length === 0) {
+      const currentAUM = parseFloat(financialProfile.currentAUM) || 0;
+      const monthlySIP = parseFloat(financialProfile.monthlySIP) || 0;
+      const expectedReturn = parseFloat(financialProfile.expectedReturn) || 12;
+      const annualSIPIncrease = parseFloat(financialProfile.annualSIPIncrease) || 10;
+      const currentAge = parseFloat(financialProfile.currentAge) || 30;
+      const currentYear = new Date().getFullYear();
+      const targetYear = (currentYear + 30).toString(); // Default 30 years if no goals
+      return calculateProjectedValue(currentAUM, monthlySIP, expectedReturn, annualSIPIncrease, targetYear, currentAge);
+    }
+
+    // Find the furthest goal year
+    const furthestGoal = goals.reduce((furthest, goal) => {
+      return parseInt(goal.targetYear) > parseInt(furthest.targetYear) ? goal : furthest;
+    }, goals[0]);
+
+    const currentAUM = parseFloat(financialProfile.currentAUM) || 0;
+    const monthlySIP = parseFloat(financialProfile.monthlySIP) || 0;
+    const expectedReturn = parseFloat(financialProfile.expectedReturn) || 12;
+    const annualSIPIncrease = parseFloat(financialProfile.annualSIPIncrease) || 10;
+    const currentAge = parseFloat(financialProfile.currentAge) || 30;
+
+    return calculateProjectedValue(
+      currentAUM,
+      monthlySIP,
+      expectedReturn,
+      annualSIPIncrease,
+      furthestGoal.targetYear,
+      currentAge
+    );
+  };
+
+  // Calculate total goals amount
+  const calculateTotalGoalsAmount = (): number => {
+    return goals.reduce((total, goal) => {
+      return total + parseAmount(goal.targetAmount);
+    }, 0);
+  };
+
+  // Calculate year-by-year projections
+  const calculateYearByYearProjections = () => {
+    const currentYear = new Date().getFullYear();
+    const currentAge = parseFloat(financialProfile.currentAge) || 30;
+    const currentAUM = parseFloat(financialProfile.currentAUM) || 0;
+    const monthlySIP = parseFloat(financialProfile.monthlySIP) || 0;
+    const expectedReturn = parseFloat(financialProfile.expectedReturn) || 12;
+    const annualSIPIncrease = parseFloat(financialProfile.annualSIPIncrease) || 10;
+    const inflationRate = parseFloat(financialProfile.inflationRate) || 6;
+
+    // Find the furthest goal year to determine projection range
+    const maxYear = goals.length > 0
+      ? Math.max(...goals.map((goal) => parseInt(goal.targetYear)))
+      : currentYear + 30;
+
+    const projections: Array<{
+      year: number;
+      age: number;
+      investment: number;
+      monthlySIP: number;
+      annualSIP: number;
+      goalsRequired: number;
+      surplusDeficit: number;
+    }> = [];
+
+    let runningValue = currentAUM;
+    const monthlyReturn = expectedReturn / 100 / 12;
+    const annualReturn = expectedReturn / 100;
+
+    for (let yearOffset = 0; yearOffset <= maxYear - currentYear && yearOffset <= 30; yearOffset++) {
+      const year = currentYear + yearOffset;
+      const age = Math.floor(currentAge + yearOffset);
+
+      // Calculate current year's monthly SIP (with annual increase)
+      const currentYearMonthlySIP = monthlySIP * Math.pow(1 + annualSIPIncrease / 100, yearOffset);
+      const currentYearAnnualSIP = currentYearMonthlySIP * 12;
+
+      // Apply annual return to existing value
+      runningValue = runningValue * (1 + annualReturn);
+
+      // Add monthly SIPs for the year with monthly compounding
+      let sipContribution = 0;
+      for (let month = 0; month < 12; month++) {
+        const monthsRemaining = 12 - month;
+        sipContribution += currentYearMonthlySIP * Math.pow(1 + monthlyReturn, monthsRemaining);
+      }
+
+      runningValue = runningValue + sipContribution;
+
+      // Calculate goals required for this year (adjusted for inflation)
+      let goalsRequired = 0;
+      goals.forEach((goal) => {
+        if (parseInt(goal.targetYear) === year) {
+          const targetAmount = parseAmount(goal.targetAmount);
+          const yearsFromNow = year - currentYear;
+          const adjustedTarget = targetAmount * Math.pow(1 + inflationRate / 100, yearsFromNow);
+          goalsRequired += adjustedTarget;
+        }
+      });
+
+      const surplusDeficit = runningValue - goalsRequired;
+
+      projections.push({
+        year,
+        age,
+        investment: runningValue,
+        monthlySIP: currentYearMonthlySIP,
+        annualSIP: currentYearAnnualSIP,
+        goalsRequired,
+        surplusDeficit,
+      });
+    }
+
+    return projections;
   };
 
   const handleSaveGoal = () => {
@@ -399,7 +612,9 @@ export default function WealthPathPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold">₹5.00L</p>
+            <p className="text-2xl font-bold">
+              {formatAmount(parseFloat(financialProfile.currentAUM) || 0)}
+            </p>
           </div>
 
           {/* Projected Wealth */}
@@ -420,7 +635,9 @@ export default function WealthPathPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-red-600">₹-620045618</p>
+            <p className={`text-2xl font-bold ${calculateTotalProjectedWealth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatAmount(calculateTotalProjectedWealth())}
+            </p>
           </div>
 
           {/* Monthly SIP */}
@@ -441,7 +658,9 @@ export default function WealthPathPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold">₹10.00K</p>
+            <p className="text-2xl font-bold">
+              {formatAmount(parseFloat(financialProfile.monthlySIP) || 0)}
+            </p>
           </div>
 
           {/* Total Goals */}
@@ -462,7 +681,9 @@ export default function WealthPathPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold">₹5.50Cr</p>
+            <p className="text-2xl font-bold">
+              {formatAmount(calculateTotalGoalsAmount())}
+            </p>
           </div>
         </div>
 
@@ -499,43 +720,85 @@ export default function WealthPathPage() {
               Milestones on your financial journey
             </p>
             <div className="space-y-4">
-              {/* Child's Education Goal */}
-              <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-red-500`}>
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <svg
-                      className="w-5 h-5 text-red-500"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <h3 className="font-semibold">Child's Education</h3>
-                  </div>
-                  <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded">At Risk</span>
+              {goals.length === 0 ? (
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-8 text-center`}>
+                  <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    No goals added yet. Add goals in the Input tab to see timeline.
+                  </p>
                 </div>
-                <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  2035 • 10 years away
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Target (Adjusted)</p>
-                    <p className="font-semibold">₹89.54L</p>
-                  </div>
-                  <div>
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Projected Value</p>
-                    <p className="font-semibold">₹51.25L</p>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-gray-200">
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Shortfall</p>
-                  <p className="text-lg font-bold text-red-600">-₹38.29L</p>
-                </div>
-              </div>
+              ) : (
+                goals
+                  .sort((a, b) => parseInt(a.targetYear) - parseInt(b.targetYear))
+                  .map((goal) => {
+                    const metrics = calculateGoalMetrics(goal);
+                    const currentYear = new Date().getFullYear();
+                    const yearsAway = parseInt(goal.targetYear) - currentYear;
+                    const isAtRisk = !metrics.isOnTrack;
+
+                    return (
+                      <div
+                        key={goal.id}
+                        className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 ${
+                          isAtRisk ? 'border-red-500' : 'border-green-500'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <svg
+                              className={`w-5 h-5 ${isAtRisk ? 'text-red-500' : 'text-green-500'}`}
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              {isAtRisk ? (
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              ) : (
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              )}
+                            </svg>
+                            <h3 className="font-semibold">{goal.name}</h3>
+                          </div>
+                          <span
+                            className={`${
+                              isAtRisk ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                            } text-xs font-semibold px-2 py-1 rounded`}
+                          >
+                            {isAtRisk ? 'At Risk' : 'On Track'}
+                          </span>
+                        </div>
+                        <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {goal.targetYear} • {yearsAway} {yearsAway === 1 ? 'year' : 'years'} away
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Target (Adjusted)</p>
+                            <p className="font-semibold">{formatAmount(metrics.adjustedTarget)}</p>
+                          </div>
+                          <div>
+                            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Projected Value</p>
+                            <p className="font-semibold">{formatAmount(metrics.projectedValue)}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {metrics.isOnTrack ? 'Surplus' : 'Shortfall'}
+                          </p>
+                          <p
+                            className={`text-lg font-bold ${
+                              metrics.isOnTrack ? 'text-green-600' : 'text-red-600'
+                            }`}
+                          >
+                            {metrics.isOnTrack ? '+' : '-'}
+                            {formatAmount(Math.abs(metrics.shortfall))}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </div>
         </div>
@@ -577,24 +840,28 @@ export default function WealthPathPage() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { year: 2025, age: 30, investment: '₹5.00L', monthlySIP: '₹10.00K', annualSIP: '₹1.20L' },
-                  { year: 2026, age: 31, investment: '₹7.00L', monthlySIP: '₹11.00K', annualSIP: '₹1.32L' },
-                  { year: 2027, age: 32, investment: '₹9.50L', monthlySIP: '₹12.00K', annualSIP: '₹1.44L' },
-                  { year: 2028, age: 33, investment: '₹12.50L', monthlySIP: '₹13.00K', annualSIP: '₹1.56L' },
-                  { year: 2029, age: 34, investment: '₹16.00L', monthlySIP: '₹14.00K', annualSIP: '₹1.68L' },
-                ].map((row) => (
+                {calculateYearByYearProjections().map((row) => (
                   <tr
                     key={row.year}
                     className={`border-b border-gray-200 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
                   >
                     <td className="px-4 py-3">{row.year}</td>
                     <td className="px-4 py-3">{row.age}</td>
-                    <td className="px-4 py-3 font-semibold">{row.investment}</td>
-                    <td className="px-4 py-3">{row.monthlySIP}</td>
-                    <td className="px-4 py-3">{row.annualSIP}</td>
-                    <td className="px-4 py-3">-</td>
-                    <td className="px-4 py-3 text-red-600">-</td>
+                    <td className="px-4 py-3 font-semibold">{formatAmount(row.investment)}</td>
+                    <td className="px-4 py-3">{formatAmount(row.monthlySIP)}</td>
+                    <td className="px-4 py-3">{formatAmount(row.annualSIP)}</td>
+                    <td className="px-4 py-3">
+                      {row.goalsRequired > 0 ? formatAmount(row.goalsRequired) : '-'}
+                    </td>
+                    <td
+                      className={`px-4 py-3 font-semibold ${
+                        row.surplusDeficit >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {row.goalsRequired > 0
+                        ? `${row.surplusDeficit >= 0 ? '+' : ''}${formatAmount(row.surplusDeficit)}`
+                        : formatAmount(row.surplusDeficit)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -633,9 +900,31 @@ export default function WealthPathPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 {/* Left Column */}
                 <div className="space-y-6">
+                  {/* Name */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={financialProfile.name}
+                      onChange={(e) => handleProfileChange('name', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="Enter your full name"
+                    />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} min-h-[16px]`}>
+                      {/* Spacer for alignment */}
+                    </p>
+                  </div>
+
                   {/* Current Age */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -681,7 +970,7 @@ export default function WealthPathPage() {
                   {/* Expected Return */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Expected Return (%)
+                      Expected Return / CAGR (%)
                     </label>
                     <input
                       type="number"
@@ -694,11 +983,37 @@ export default function WealthPathPage() {
                       } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
                       placeholder="12"
                     />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} min-h-[16px]`}>
+                      {/* Spacer for alignment */}
+                    </p>
                   </div>
                 </div>
 
                 {/* Right Column */}
                 <div className="space-y-6">
+                  {/* Mobile No. */}
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Mobile No. <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={financialProfile.mobileNo}
+                      onChange={(e) => handleProfileChange('mobileNo', e.target.value)}
+                      className={`w-full px-4 py-2 rounded-lg border ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
+                      placeholder="Enter your mobile number"
+                      maxLength={10}
+                    />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      10-digit mobile number
+                    </p>
+                  </div>
+
                   {/* Current AUM */}
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -757,6 +1072,9 @@ export default function WealthPathPage() {
                       } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition`}
                       placeholder="6"
                     />
+                    <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} min-h-[16px]`}>
+                      {/* Spacer for alignment */}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -970,7 +1288,12 @@ export default function WealthPathPage() {
                       >
                         <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>0 of 2 goals are on track</span>
+                      <span>
+                        {goals.filter((goal) => {
+                          const metrics = calculateGoalMetrics(goal);
+                          return metrics.isOnTrack;
+                        }).length} of {goals.length} goals are on track
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -978,124 +1301,132 @@ export default function WealthPathPage() {
 
               {/* Overall Progress */}
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Overall Progress
-                  </span>
-                  <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>0%</span>
-                </div>
-                <div className={`w-full h-3 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                  <div className="bg-blue-600 h-3 rounded-full" style={{ width: '0%' }}></div>
-                </div>
+                {(() => {
+                  const allMetrics = goals.map((goal) => calculateGoalMetrics(goal));
+                  const totalFundingRatio = allMetrics.length > 0
+                    ? allMetrics.reduce((sum, m) => sum + m.fundingRatio, 0) / allMetrics.length
+                    : 0;
+                  const overallProgress = Math.round(totalFundingRatio);
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Overall Progress
+                        </span>
+                        <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                          {overallProgress}%
+                        </span>
+                      </div>
+                      <div className={`w-full h-3 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                        <div
+                          className="bg-blue-600 h-3 rounded-full transition-all"
+                          style={{ width: `${overallProgress}%` }}
+                        ></div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Goal Cards */}
               <div className="space-y-4">
-                {/* Retirement Fund Goal */}
-                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-red-500`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold mb-1">Retirement Fund</h3>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Target: 2050 • 25 years away
-                      </p>
-                    </div>
-                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded flex items-center space-x-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                {goals.length === 0 ? (
+                  <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-8 text-center`}>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      No goals added yet. Add goals in the Input tab to see feasibility analysis.
+                    </p>
+                  </div>
+                ) : (
+                  goals.map((goal) => {
+                    const metrics = calculateGoalMetrics(goal);
+                    const currentYear = new Date().getFullYear();
+                    const yearsAway = parseInt(goal.targetYear) - currentYear;
+
+                    return (
+                      <div
+                        key={goal.id}
+                        className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 ${
+                          metrics.isOnTrack ? 'border-green-500' : 'border-red-500'
+                        }`}
                       >
-                        <path d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                      <span>Shortfall</span>
-                    </span>
-                  </div>
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold mb-1">{goal.name}</h3>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Target: {goal.targetYear} • {yearsAway} years away
+                            </p>
+                          </div>
+                          <span
+                            className={`${
+                              metrics.isOnTrack
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            } text-xs font-semibold px-2 py-1 rounded flex items-center space-x-1`}
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              {metrics.isOnTrack ? (
+                                <path d="M5 13l4 4L19 7" />
+                              ) : (
+                                <path d="M4 6h16M4 12h16M4 18h16" />
+                              )}
+                            </svg>
+                            <span>{metrics.isOnTrack ? 'On Track' : 'Shortfall'}</span>
+                          </span>
+                        </div>
 
-                  <div className="space-y-2 mb-3">
-                    <div className="flex justify-between text-sm">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Adjusted Target</span>
-                      <span className="font-semibold">₹21.46Cr</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Projected Value</span>
-                      <span className="font-semibold">₹24.94L</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Shortfall</span>
-                      <span className="font-semibold text-red-600">₹21.21Cr</span>
-                    </div>
-                  </div>
+                        <div className="space-y-2 mb-3">
+                          <div className="flex justify-between text-sm">
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Adjusted Target</span>
+                            <span className="font-semibold">{formatAmount(metrics.adjustedTarget)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Projected Value</span>
+                            <span className="font-semibold">{formatAmount(metrics.projectedValue)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                              {metrics.isOnTrack ? 'Surplus' : 'Shortfall'}
+                            </span>
+                            <span
+                              className={`font-semibold ${
+                                metrics.isOnTrack ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
+                              {metrics.isOnTrack ? '+' : '-'}
+                              {formatAmount(Math.abs(metrics.shortfall))}
+                            </span>
+                          </div>
+                        </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Funding Ratio
-                      </span>
-                      <span className="text-xs font-semibold">1%</span>
-                    </div>
-                    <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: '1%' }}></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Child's Education Goal */}
-                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 border-l-4 border-red-500`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold mb-1">Child's Education</h3>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Target: 2035 • 10 years away
-                      </p>
-                    </div>
-                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded flex items-center space-x-1">
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                      <span>Shortfall</span>
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 mb-3">
-                    <div className="flex justify-between text-sm">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Adjusted Target</span>
-                      <span className="font-semibold">₹89.54L</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Projected Value</span>
-                      <span className="font-semibold">₹51.25L</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Shortfall</span>
-                      <span className="font-semibold text-red-600">₹38.29L</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Funding Ratio
-                      </span>
-                      <span className="text-xs font-semibold">57%</span>
-                    </div>
-                    <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: '57%' }}></div>
-                    </div>
-                  </div>
-                </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Funding Ratio
+                            </span>
+                            <span className="text-xs font-semibold">{Math.round(metrics.fundingRatio)}%</span>
+                          </div>
+                          <div className={`w-full h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                metrics.isOnTrack ? 'bg-green-600' : 'bg-blue-600'
+                              }`}
+                              style={{ width: `${Math.min(100, metrics.fundingRatio)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -1194,25 +1525,20 @@ export default function WealthPathPage() {
 
               {/* Goals Timeline List */}
               <div className="space-y-6">
-                {goals.map((goal, index) => {
-                  // Calculate shortfall (simplified - you'd calculate based on actual projections)
-                  const parseAmount = (amountStr: string): number => {
-                    if (amountStr.includes('Cr')) {
-                      return parseFloat(amountStr.replace(/[₹,Cr]/g, '')) * 10000000;
-                    } else if (amountStr.includes('L')) {
-                      return parseFloat(amountStr.replace(/[₹,L]/g, '')) * 100000;
-                    }
-                    return parseFloat(amountStr.replace(/[₹,]/g, '')) || 0;
-                  };
+                {goals.length === 0 ? (
+                  <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-8 text-center`}>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      No goals added yet. Add goals in the Input tab to see timeline.
+                    </p>
+                  </div>
+                ) : (
+                  goals.map((goal, index) => {
+                    const metrics = calculateGoalMetrics(goal);
+                    const isAtRisk = !metrics.isOnTrack;
 
-                  const targetAmount = parseAmount(goal.targetAmount);
-                  const projectedValue = parseAmount(goal.currentValue);
-                  const shortfall = targetAmount - projectedValue;
-                  const isAtRisk = shortfall > 0;
-
-                  // Calculate years away
-                  const currentYear = new Date().getFullYear();
-                  const yearsAway = parseInt(goal.targetYear) - currentYear;
+                    // Calculate years away
+                    const currentYear = new Date().getFullYear();
+                    const yearsAway = parseInt(goal.targetYear) - currentYear;
 
                   return (
                     <div key={goal.id} className="flex items-start space-x-4 relative">
@@ -1255,9 +1581,13 @@ export default function WealthPathPage() {
                                 {goal.targetYear} • {yearsAway} years away
                               </p>
                             </div>
-                            {isAtRisk && (
+                            {isAtRisk ? (
                               <span className="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded">
                                 At Risk
+                              </span>
+                            ) : (
+                              <span className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded">
+                                On Track
                               </span>
                             )}
                           </div>
@@ -1267,29 +1597,35 @@ export default function WealthPathPage() {
                               <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Target (Adjusted)
                               </p>
-                              <p className="font-semibold">{goal.targetAmount}</p>
+                              <p className="font-semibold">{formatAmount(metrics.adjustedTarget)}</p>
                             </div>
                             <div>
                               <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Projected Value
                               </p>
-                              <p className="font-semibold">{goal.currentValue}</p>
+                              <p className="font-semibold">{formatAmount(metrics.projectedValue)}</p>
                             </div>
                           </div>
 
                           <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
                             <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Shortfall
+                              {metrics.isOnTrack ? 'Surplus' : 'Shortfall'}
                             </p>
-                            <p className="text-lg font-bold text-red-600">
-                              -{formatAmount(Math.abs(shortfall))}
+                            <p
+                              className={`text-lg font-bold ${
+                                metrics.isOnTrack ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
+                              {metrics.isOnTrack ? '+' : '-'}
+                              {formatAmount(Math.abs(metrics.shortfall))}
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
                   );
-                })}
+                  })
+                )}
               </div>
             </div>
           </div>
