@@ -17,17 +17,29 @@ export function DarkModeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
     // Check localStorage for saved preference
     const saved = localStorage.getItem('darkMode');
-    if (saved) {
-      setIsDarkMode(saved === 'true');
+    let initialDarkMode = false;
+    
+    if (saved !== null) {
+      initialDarkMode = saved === 'true';
     } else {
-      // Check system preference
-      setIsDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      // Check system preference only if no saved preference
+      initialDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    
+    setIsDarkMode(initialDarkMode);
+    
+    // Apply dark class immediately
+    if (initialDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
   useEffect(() => {
     if (mounted) {
       localStorage.setItem('darkMode', String(isDarkMode));
+      // Apply or remove dark class
       if (isDarkMode) {
         document.documentElement.classList.add('dark');
       } else {
@@ -37,7 +49,19 @@ export function DarkModeProvider({ children }: { children: React.ReactNode }) {
   }, [isDarkMode, mounted]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
+    setIsDarkMode((prev) => {
+      const newValue = !prev;
+      // Immediately update the DOM
+      const html = document.documentElement;
+      if (newValue) {
+        html.classList.add('dark');
+      } else {
+        html.classList.remove('dark');
+      }
+      // Update localStorage
+      localStorage.setItem('darkMode', String(newValue));
+      return newValue;
+    });
   };
 
   return (

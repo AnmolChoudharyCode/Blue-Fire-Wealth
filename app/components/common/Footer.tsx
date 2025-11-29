@@ -26,22 +26,22 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="bg-gray-900 dark:bg-gray-800 text-gray-300 dark:text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Company Info */}
           <div className="lg:col-span-1">
-            <h3 className="text-2xl font-bold text-white mb-4">
+            <h3 className="text-2xl font-bold text-white dark:text-white mb-4">
               Blue Fire Wealth
             </h3>
-            <p className="text-sm mb-4 leading-relaxed">
+            <p className="text-sm mb-4 leading-relaxed text-gray-300 dark:text-gray-300">
               Expert wealth management services to secure your financial future. 
               Trusted advisors for all your financial planning needs.
             </p>
             <div className="flex space-x-4">
               <a
                 href="#"
-                className="text-gray-400 hover:text-teal-400 transition-colors cursor-pointer"
+                className="text-gray-400 dark:text-gray-400 hover:text-teal-400 dark:hover:text-teal-400 transition-colors cursor-pointer"
                 aria-label="Facebook"
               >
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@ export default function Footer() {
               </a>
               <a
                 href="#"
-                className="text-gray-400 hover:text-teal-400 transition-colors cursor-pointer"
+                className="text-gray-400 dark:text-gray-400 hover:text-teal-400 dark:hover:text-teal-400 transition-colors cursor-pointer"
                 aria-label="Twitter"
               >
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@ export default function Footer() {
               </a>
               <a
                 href="#"
-                className="text-gray-400 hover:text-teal-400 transition-colors cursor-pointer"
+                className="text-gray-400 dark:text-gray-400 hover:text-teal-400 dark:hover:text-teal-400 transition-colors cursor-pointer"
                 aria-label="LinkedIn"
               >
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -71,13 +71,13 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-white dark:text-white font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               {navLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm hover:text-teal-400 transition-colors cursor-pointer"
+                    className="text-sm text-gray-300 dark:text-gray-300 hover:text-teal-400 dark:hover:text-teal-400 transition-colors cursor-pointer"
                   >
                     {link.name}
                   </Link>
@@ -88,13 +88,13 @@ export default function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Services</h4>
+            <h4 className="text-white dark:text-white font-semibold mb-4">Services</h4>
             <ul className="space-y-2">
               {services.map((service) => (
                 <li key={service.name}>
                   <Link
                     href={service.href}
-                    className="text-sm hover:text-teal-400 transition-colors cursor-pointer"
+                    className="text-sm text-gray-300 dark:text-gray-300 hover:text-teal-400 dark:hover:text-teal-400 transition-colors cursor-pointer"
                   >
                     {service.name}
                   </Link>
@@ -105,11 +105,11 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Contact Us</h4>
+            <h4 className="text-white dark:text-white font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start">
                 <svg
-                  className="h-5 w-5 mr-3 text-teal-400 mt-0.5"
+                  className="h-5 w-5 mr-3 text-teal-400 dark:text-teal-400 mt-0.5"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -119,11 +119,11 @@ export default function Footer() {
                 >
                   <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span>info@bluefirewealth.com</span>
+                <span className="text-gray-300 dark:text-gray-300">info@bluefirewealth.com</span>
               </li>
               <li className="flex items-start">
                 <svg
-                  className="h-5 w-5 mr-3 text-teal-400 mt-0.5"
+                  className="h-5 w-5 mr-3 text-teal-400 dark:text-teal-400 mt-0.5"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -133,11 +133,11 @@ export default function Footer() {
                 >
                   <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                <span>+1 (555) 123-4567</span>
+                <span className="text-gray-300 dark:text-gray-300">+1 (555) 123-4567</span>
               </li>
               <li className="flex items-start">
                 <svg
-                  className="h-5 w-5 mr-3 text-teal-400 mt-0.5"
+                  className="h-5 w-5 mr-3 text-teal-400 dark:text-teal-400 mt-0.5"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -148,16 +148,16 @@ export default function Footer() {
                   <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>123 Financial District,<br />New York, NY 10004</span>
+                <span className="text-gray-300 dark:text-gray-300">123 Financial District,<br />New York, NY 10004</span>
               </li>
             </ul>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
+        <div className="mt-12 pt-8 border-t border-gray-800 dark:border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-400">
               © {currentYear} Blue Fire Wealth. All rights reserved.
             </p>
             <div className="flex space-x-6">
@@ -165,7 +165,7 @@ export default function Footer() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="text-sm text-gray-400 hover:text-teal-400 transition-colors cursor-pointer"
+                  className="text-sm text-gray-400 dark:text-gray-400 hover:text-teal-400 dark:hover:text-teal-400 transition-colors cursor-pointer"
                 >
                   {link.name}
                 </Link>

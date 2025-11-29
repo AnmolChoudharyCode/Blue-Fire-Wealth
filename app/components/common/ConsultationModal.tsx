@@ -124,14 +124,14 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative z-10">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative z-10">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Schedule Free Consultation</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Schedule Free Consultation</h2>
           <button
             onClick={handleClose}
             disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             aria-label="Close modal"
           >
             <svg
@@ -152,9 +152,9 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
         <div className="p-6">
           {isSubmitted ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-popper">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4 animate-popper">
                 <svg
-                  className="w-8 h-8 text-green-600"
+                  className="w-8 h-8 text-green-600 dark:text-green-400"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -165,10 +165,10 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   <path d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2 animate-fade-in-scale" style={{ animationDelay: '0.2s' }}>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 animate-fade-in-scale" style={{ animationDelay: '0.2s' }}>
                 Thank You!
               </h3>
-              <p className="text-gray-600 animate-fade-in-scale" style={{ animationDelay: '0.4s' }}>
+              <p className="text-gray-600 dark:text-gray-300 animate-fade-in-scale" style={{ animationDelay: '0.4s' }}>
                 We've received your consultation request. Our team will reach out to you shortly.
               </p>
             </div>
@@ -176,7 +176,7 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Full Name */}
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -186,14 +186,14 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   required
                   value={formData.fullName}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent outline-none transition"
                   placeholder="Enter your full name"
                 />
               </div>
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -203,14 +203,14 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent outline-none transition"
                   placeholder="Enter your email address"
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -220,7 +220,7 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   required
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent outline-none transition"
                   placeholder="Enter your phone number"
                 />
               </div>
@@ -229,7 +229,7 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
               <div>
                 <label
                   htmlFor="consultationType"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
                   Consultation Type <span className="text-red-500">*</span>
                 </label>
@@ -239,7 +239,7 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   required
                   value={formData.consultationType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent outline-none transition"
                 >
                   <option value="">Select consultation type</option>
                   <option value="investment-planning">Investment Planning</option>
@@ -254,7 +254,7 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
 
               {/* Message */}
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Additional Information (Optional)
                 </label>
                 <textarea
@@ -263,7 +263,7 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   rows={4}
                   value={formData.message}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent outline-none transition resize-none"
                   placeholder="Tell us about your financial goals or any questions you have..."
                 />
               </div>
@@ -274,14 +274,14 @@ export default function ConsultationModal({ isOpen, onClose }: ConsultationModal
                   type="button"
                   onClick={handleClose}
                   disabled={isSubmitting}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex-1 px-6 py-3 bg-gray-900 dark:bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Request'}
                 </button>

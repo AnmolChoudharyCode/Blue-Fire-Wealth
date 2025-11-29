@@ -21,13 +21,13 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-white dark:bg-gray-900">
       <ConsultationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       {/* Hero Section */}
       <section className="relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-2 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-2 leading-tight text-gray-900 dark:text-white">
               Secure Your Financial Future
             </h1>
             <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-4xl mx-auto">
@@ -43,13 +43,13 @@ export default function Home() {
                 )}
               </div>
               {/* Right side - Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center md:ml-2 lg:ml-4">
-                <Link href="/wealth-path">
-                  <button className="bg-gray-900 dark:bg-gray-700 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors shadow-lg cursor-pointer">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center md:ml-2 lg:ml-4">
+                <Link href="/wealth-path" className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto bg-gray-900 dark:bg-gray-700 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors shadow-lg cursor-pointer">
                     Get Started
                   </button>
                 </Link>
-                <button className="border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-900 dark:hover:bg-gray-700 hover:text-white transition-colors cursor-pointer">
+                <button className="w-full sm:w-auto border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-900 dark:hover:bg-gray-700 hover:text-white transition-colors cursor-pointer">
                   Learn More
                 </button>
               </div>

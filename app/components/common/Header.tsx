@@ -25,7 +25,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 cursor-pointer">
-            <div className="text-2xl lg:text-3xl font-bold">
+            <div className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
               Blue Fire Wealth
             </div>
           </Link>
