@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import ConsultationModal from './components/common/ConsultationModal';
+import Loader from './components/common/Loader';
 
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
@@ -11,18 +12,40 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [animationData, setAnimationData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load animation data
   useEffect(() => {
+    const startTime = Date.now();
+    
     fetch('/Lottie/homepage-time-to-make-business.json')
       .then((response) => response.json())
-      .then((data) => setAnimationData(data))
-      .catch((err) => console.error('Failed to load animation:', err));
+      .then((data) => {
+        const elapsed = Date.now() - startTime;
+        // Only show loader if it takes more than 200ms (actual loading time)
+        if (elapsed < 200) {
+          setAnimationData(data);
+          setIsLoading(false);
+        } else {
+          // If it took longer, show loader for at least a bit
+          setTimeout(() => {
+            setAnimationData(data);
+            setIsLoading(false);
+          }, 300);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load animation:', err);
+        setIsLoading(false);
+      });
   }, []);
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900">
       <ConsultationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {isLoading && (
+        <Loader fullScreen message="Loading..." />
+      )}
       {/* Hero Section */}
       <section className="relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -39,17 +62,17 @@ export default function Home() {
                 {animationData ? (
                   <Lottie animationData={animationData} loop={true} />
                 ) : (
-                  <div className="w-full h-full" />
+                  !isLoading && <div className="w-full h-full" />
                 )}
               </div>
               {/* Right side - Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center md:ml-2 lg:ml-4">
                 <Link href="/wealth-path" className="w-full sm:w-auto">
-                  <button className="w-full sm:w-auto bg-gray-900 dark:bg-gray-700 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors shadow-lg cursor-pointer">
+                  <button className="w-full sm:w-[180px] bg-gray-900 dark:bg-gray-700 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors shadow-lg cursor-pointer border-2 border-transparent">
                     Get Started
                   </button>
                 </Link>
-                <button className="w-full sm:w-auto border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-900 dark:hover:bg-gray-700 hover:text-white transition-colors cursor-pointer">
+                <button className="w-full sm:w-[180px] border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-900 dark:hover:bg-gray-700 hover:text-white transition-colors cursor-pointer">
                   Learn More
                 </button>
               </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useDarkMode } from '../components/common/DarkModeProvider';
+import Loader from '../components/common/Loader';
 
 interface Goal {
   id: string;
@@ -15,44 +16,26 @@ interface Goal {
 }
 
 export default function WealthPathPage() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('input');
   const { isDarkMode } = useDarkMode();
+  const [isDataEntered, setIsDataEntered] = useState(false);
+  const [showAccessMessage, setShowAccessMessage] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Financial Profile State
+  // Financial Profile State - Initially empty
   const [financialProfile, setFinancialProfile] = useState({
     name: '',
     mobileNo: '',
-    currentAge: '30',
-    monthlySIP: '10000',
-    expectedReturn: '12',
-    currentAUM: '500000',
-    annualSIPIncrease: '10',
-    inflationRate: '6',
+    currentAge: '',
+    monthlySIP: '',
+    expectedReturn: '',
+    currentAUM: '',
+    annualSIPIncrease: '',
+    inflationRate: '',
   });
 
-  // Life Goals State
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: '1',
-      name: 'Retirement Fund',
-      targetYear: '2050',
-      targetAmount: '₹5.00Cr',
-      currentValue: '₹1.00L',
-      yearsAway: '25 years',
-      category: 'Retirement',
-      icon: 'target',
-    },
-    {
-      id: '2',
-      name: "Child's Education",
-      targetYear: '2035',
-      targetAmount: '₹50.00L',
-      currentValue: '₹0',
-      yearsAway: '10 years',
-      category: 'Education',
-      icon: 'education',
-    },
-  ]);
+  // Life Goals State - Initially empty
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -72,8 +55,81 @@ export default function WealthPathPage() {
   };
 
   const handleSaveProfile = () => {
-    // Handle save profile logic
-    console.log('Saving profile:', financialProfile);
+    // Validate required fields
+    if (!financialProfile.name || !financialProfile.mobileNo) {
+      alert('Please fill in all required fields (Name and Mobile No.)');
+      return;
+    }
+
+    // Validate that at least some financial data is entered
+    if (!financialProfile.currentAge && !financialProfile.monthlySIP && !financialProfile.currentAUM) {
+      alert('Please enter at least some financial information (Age, Monthly SIP, or Current AUM)');
+      return;
+    }
+
+    // Show loader while processing
+    setIsProcessing(true);
+
+    // Process data (calculations happen synchronously, but show loader briefly for UX)
+    // Use requestAnimationFrame to ensure UI updates before heavy calculations
+    requestAnimationFrame(() => {
+      // Mark data as entered
+      setIsDataEntered(true);
+      setShowAccessMessage(false);
+      
+      // Hide loader after a brief moment to show processing
+      setTimeout(() => {
+        setIsProcessing(false);
+        // Switch to dashboard tab after saving
+        setActiveTab('dashboard');
+      }, 300);
+    });
+  };
+
+  const handleReset = () => {
+    // Reset financial profile to empty
+    setFinancialProfile({
+      name: '',
+      mobileNo: '',
+      currentAge: '',
+      monthlySIP: '',
+      expectedReturn: '',
+      currentAUM: '',
+      annualSIPIncrease: '',
+      inflationRate: '',
+    });
+
+    // Reset goals
+    setGoals([]);
+
+    // Reset form data
+    setGoalFormData({
+      name: '',
+      category: 'Retirement',
+      targetYear: '',
+      targetAmount: '',
+      currentValue: '0',
+    });
+
+    // Reset data entered flag
+    setIsDataEntered(false);
+    setShowAccessMessage(false);
+
+    // Ensure we're on input tab
+    setActiveTab('input');
+  };
+
+  const handleTabChange = (tab: string) => {
+    // If trying to access dashboard or analysis without data, show message
+    if ((tab === 'dashboard' || tab === 'analysis') && !isDataEntered) {
+      setShowAccessMessage(true);
+      // Don't change tab, stay on input
+      return;
+    }
+    
+    // Allow tab change if data is entered or if going to input tab
+    setShowAccessMessage(false);
+    setActiveTab(tab);
   };
 
   const handleDeleteGoal = (id: string) => {
@@ -125,6 +181,11 @@ export default function WealthPathPage() {
   };
 
   const formatAmount = (amount: number): string => {
+    // Handle NaN, undefined, or null
+    if (!amount || isNaN(amount)) {
+      return '₹0';
+    }
+    
     if (amount >= 10000000) {
       return `₹${(amount / 10000000).toFixed(2)}Cr`;
     } else if (amount >= 100000) {
@@ -404,6 +465,9 @@ export default function WealthPathPage() {
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      {/* Processing Loader */}
+      {isProcessing && <Loader fullScreen message="Processing your data..." />}
+      
       {/* Goal Modal */}
       {(isAddingGoal || editingGoal) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
@@ -573,7 +637,7 @@ export default function WealthPathPage() {
             {['dashboard', 'input', 'analysis'].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
                   activeTab === tab
                     ? 'border-blue-600 text-blue-600'
@@ -586,6 +650,41 @@ export default function WealthPathPage() {
           </div>
         </div>
       </div>
+
+      {/* Access Message */}
+      {showAccessMessage && (
+        <div className={`${isDarkMode ? 'bg-yellow-900' : 'bg-yellow-50'} border-l-4 ${isDarkMode ? 'border-yellow-500' : 'border-yellow-400'} p-4 max-w-7xl mx-auto mt-4`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <svg
+                className={`h-5 w-5 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-400'} mr-3`}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className={`${isDarkMode ? 'text-yellow-200' : 'text-yellow-800'} font-medium`}>
+                Please enter your financial information in the Input tab and click "Proceed" to access Dashboard or Analysis.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowAccessMessage(false);
+                setActiveTab('input');
+              }}
+              className={`ml-4 ${isDarkMode ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-800'}`}
+            >
+              <svg className="w-5 h-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1078,16 +1177,6 @@ export default function WealthPathPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Proceed Button */}
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={handleSaveProfile}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md cursor-pointer"
-                >
-                  Proceed
-                </button>
-              </div>
             </div>
 
             {/* Life Goals Section */}
@@ -1249,6 +1338,26 @@ export default function WealthPathPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-end">
+              <button
+                onClick={() => {
+                  if (confirm('Are you sure you want to reset all data? This will clear all financial information and goals.')) {
+                    handleReset();
+                  }
+                }}
+                className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                Reset
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors shadow-md cursor-pointer"
+              >
+                Proceed
+              </button>
             </div>
           </div>
         )}
