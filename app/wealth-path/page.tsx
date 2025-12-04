@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useDarkMode } from '../components/common/DarkModeProvider';
 import Loader from '../components/common/Loader';
+import WealthProjectionChart from '../components/charts/WealthProjectionChart';
 
 interface Goal {
   id: string;
@@ -794,22 +795,11 @@ export default function WealthPathPage() {
             <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Your investment growth vs. goal requirements over time
             </p>
-            <div className="h-64 flex items-center justify-center border border-gray-200 rounded">
-              <div className="text-center">
-                <svg
-                  className="w-48 h-48 text-gray-300"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Chart placeholder</p>
-              </div>
-            </div>
+            <WealthProjectionChart projections={calculateYearByYearProjections().map(p => ({
+              year: p.year,
+              investment: p.investment,
+              goalsRequired: p.goalsRequired,
+            }))} />
           </div>
 
           {/* Goal Timeline */}
@@ -1565,44 +1555,12 @@ export default function WealthPathPage() {
                 </div>
               </div>
 
-              {/* Chart Legend */}
-              <div className="flex items-center space-x-6 mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    → Investment Value
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    → Goals Requirement
-                  </span>
-                </div>
-              </div>
-
               {/* Chart Container */}
-              <div className="h-80 flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900">
-                <div className="text-center">
-                  <svg
-                    className="w-64 h-64 text-gray-300 dark:text-gray-600"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Chart visualization placeholder
-                  </p>
-                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                    Integration with charting library required
-                  </p>
-                </div>
-              </div>
+              <WealthProjectionChart projections={calculateYearByYearProjections().map(p => ({
+                year: p.year,
+                investment: p.investment,
+                goalsRequired: p.goalsRequired,
+              }))} />
             </div>
             </div>
 
